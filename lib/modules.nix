@@ -8,16 +8,20 @@
   paths,
   pathFromRoot,
 }:
-rec {
-  # System utilities
-  forEachSystem = f: lib.genAttrs (import inputs.systems) (system: f pkgsFor.${system});
-
-  # Import overlays from consumer's overlays directory
+let
+  # Import overlays from consumer's overlays directory (outside rec to avoid circular dependency)
   overlays =
     if builtins.pathExists paths.overlays then
       import paths.overlays { inherit inputs lib; }
     else
       { default = _: _: { }; };
+in
+rec {
+  # Re-export overlays for external access
+  inherit overlays;
+
+  # System utilities
+  forEachSystem = f: lib.genAttrs (import inputs.systems) (system: f pkgsFor.${system});
 
   pkgsFor = lib.genAttrs (import inputs.systems) (
     system:
